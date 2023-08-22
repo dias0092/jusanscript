@@ -152,10 +152,10 @@ class ExcelComparisonApp(customtkinter.CTk):
 
         # configure window
         self.title("Excel Comparison Tool")
-        self.geometry(f"{400}x{600}")
+        self.geometry(f"{400}x{400}")
 
         # create label for the first file selection
-        self.first_label = customtkinter.CTkLabel(self, text="Выгрузка из АСР Онимы:")
+        self.first_label = customtkinter.CTkLabel(self, text="Выгрузка из АСР \"Онима:\"")
         self.first_label.pack(pady=10)
 
         # create file dialog for the first Excel file
@@ -169,10 +169,10 @@ class ExcelComparisonApp(customtkinter.CTk):
 
         # create label for the second file selection
         self.second_label = customtkinter.CTkLabel(self, text="Выгрузка из сверки скоростей:")
-        self.second_label.pack(pady=10)
+        self.second_label.pack(pady=0)
         
         self.date_prompt_label = customtkinter.CTkLabel(self, text="Выберите дату:")
-        self.date_prompt_label.pack(pady=5)
+        self.date_prompt_label.pack(pady=0)
 
         # Add DateEntry (dropdown calendar)
         self.date_entry = DateEntry(self, date_pattern='y-mm-dd')
@@ -357,7 +357,7 @@ class ExcelComparisonApp(customtkinter.CTk):
         if not first_file or not second_file:
             messagebox.showerror("Error", "Пожалуйста выберите оба файла.")
             return
-
+        
         # Read the Excel files and perform the comparison logic here
         try:
             df1 = pd.read_excel(first_file)
@@ -366,8 +366,24 @@ class ExcelComparisonApp(customtkinter.CTk):
             # Your comparison logic goes here
             result_df = compare_excel_files(first_file, second_file)
             
+            
+            
             output_directory = os.path.dirname(first_file)
             output_filename = os.path.join(output_directory, "comparison_result.xlsx")
+            
+
+            
+            ip_to_router_name = {v: k for k, v in router_dict.items()}
+            result_df["Router Name"] = result_df["Router IP"].map(ip_to_router_name)
+            result_df = result_df[['IP', 'Status', 'Router Name', 'Router IP', 'Connection']]
+            
+            df_second = pd.read_excel(second_file)
+            ip_to_branch_mapping = df_second.set_index('INTERFACE')['BRANCH'].to_dict()
+            if 'IP' in result_df.columns:
+                result_df['Branch'] = result_df['IP'].map(ip_to_branch_mapping)
+            else:
+                print("Warning: 'IP' column not found in result_df.")
+                        
             result_df.to_excel(output_filename, index=False)
 
             # Show the result to the user
