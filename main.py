@@ -366,12 +366,8 @@ class ExcelComparisonApp(customtkinter.CTk):
             # Your comparison logic goes here
             result_df = compare_excel_files(first_file, second_file)
             
-            
-            
             output_directory = os.path.dirname(first_file)
             output_filename = os.path.join(output_directory, "comparison_result.xlsx")
-            
-
             
             ip_to_router_name = {v: k for k, v in router_dict.items()}
             result_df["Router Name"] = result_df["Router IP"].map(ip_to_router_name)
