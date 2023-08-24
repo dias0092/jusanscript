@@ -1,13 +1,11 @@
 import os
-import tkinter as tk
-from tkinter import messagebox
-from tkcalendar import DateEntry
-import customtkinter
-import pandas as pd
 import requests
 import json
 import xml.etree.ElementTree as ET
+import pandas as pd
 import urllib3
+import datetime
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Dictionary of routers
@@ -59,48 +57,8 @@ TAG_TO_COLUMN_MAP = {
     'f22': 'ROUTER-NEW'
 }
 
-customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
-
-
-class LoadingScreen(tk.Toplevel):
-    def __init__(self, root):
-        super().__init__(root)
-        self.title("Loading")
-        self.geometry("400x200")
-        self.label = tk.Label(self, text="Loading...")
-        self.label.pack(pady=20)
-
-
-def process_files():
-    first_file = app.first_file_path.get()
-    second_file = app.second_file_path.get()
-
-    # Show loading screen
-    loading_screen = LoadingScreen(root)
-    loading_screen.update()
-
-    try:
-        # Call the logic to compare the Excel files
-        result_df = compare_excel_files(first_file, second_file)
-
-        # Save the result to a new Excel file
-        output_filename = "comparison_result.xlsx"
-        result_df.to_excel(output_filename, index=False)
-
-        # Show a message box with the result
-        messagebox.showinfo("Comparison Result", f"Comparison completed!\nResult saved to {output_filename}")
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {e}")
-
-    # Close the loading screen
-    loading_screen.destroy()
-
 def extract_ip(x):
-    if isinstance(x, str):
-        return x.split('/')[0].strip()
-    else:
-        return x
+    return x.split('/')[0].strip() if isinstance(x, str) else x
 
 def compare_excel_files(first_file, second_file):
     # Read the first Excel file
@@ -145,56 +103,39 @@ def compare_excel_files(first_file, second_file):
     return result_df
 
 
-class ExcelComparisonApp(customtkinter.CTk):
+class ExcelComparisonApp:
     
     def __init__(self):
-        super().__init__()
-
-        # configure window
-        self.title("Excel Comparison Tool")
-        self.geometry(f"{400}x{400}")
-
-        # create label for the first file selection
-        self.first_label = customtkinter.CTkLabel(self, text="Выгрузка из АСР \"Онима:\"")
-        self.first_label.pack(pady=10)
-
-        # create file dialog for the first Excel file
-        self.first_file_path = tk.StringVar()
-        self.first_file_button = customtkinter.CTkButton(self, text="Загрузить с сервера", command=self.browse_first_file)
-        self.first_file_button.pack()
-
-        # label to display the first selected file path
-        self.first_selected_label = customtkinter.CTkLabel(self, textvariable=self.first_file_path)
-        self.first_selected_label.pack()
-
-        # create label for the second file selection
-        self.second_label = customtkinter.CTkLabel(self, text="Выгрузка из сверки скоростей:")
-        self.second_label.pack(pady=0)
+        self.first_file_path = ""
+        self.second_file_path = ""
+        self.date = '2023.08.23'
+        self.main_loop()
         
-        self.date_prompt_label = customtkinter.CTkLabel(self, text="Выберите дату:")
-        self.date_prompt_label.pack(pady=0)
+    def main_loop(self):
+        """Main interaction loop where the user can select options."""
+        while True:
+            print("\nExcel Comparison Tool")
+            print("1. Download from ONYMA")
+            print("2. Download from SERVER")
+            print("3. Take a result")
+            print("4. Exit")
+            print("5. Set Date")
+            
+            choice = input("Enter your choice (1/2/3/4/5): ")
 
-        # Add DateEntry (dropdown calendar)
-        self.date_entry = DateEntry(self, date_pattern='y-mm-dd')
-        self.date_entry.pack()
-
-        # Label to display the selected date
-        self.selected_date_label = customtkinter.CTkLabel(self, text="")
-        self.selected_date_label.pack()
-
-
-        # create file dialog for the second Excel file
-        self.second_file_path = tk.StringVar()
-        self.second_file_button = customtkinter.CTkButton(self, text="Загрузить с сервера", command=self.browse_second_file)
-        self.second_file_button.pack(pady=10)
-
-        # label to display the second selected file path
-        self.second_selected_label = customtkinter.CTkLabel(self, textvariable=self.second_file_path)
-        self.second_selected_label.pack()
-
-        # create button to start the comparison process
-        self.compare_button = customtkinter.CTkButton(self, text="Получить результаты", command=self.compare_files)
-        self.compare_button.pack(pady=20)
+            if choice == "1":
+                self.browse_first_file()
+            elif choice == "2":
+                self.browse_second_file()
+            elif choice == "3":
+                self.compare_files()
+            elif choice == "4":
+                print("Exiting...")
+                break
+            elif choice == "5":
+                self.set_date()
+            else:
+                print("Invalid choice. Please try again.")
 
     def get_token(self, email, password):
         data = {
@@ -267,11 +208,22 @@ class ExcelComparisonApp(customtkinter.CTk):
             }
             processed_data.append(processed_item)
         return processed_data
-        
+    
+    
+    def set_date(self):
+        date_input = input("Enter the date (format YYYY.MM.DD): ")
+        try:
+            # Check if the date format is correct
+            datetime.datetime.strptime(date_input, '%Y.%m.%d')
+            self.date = date_input
+            print(f"Date set to {self.date}")
+        except ValueError:
+            print("The date format is incorrect. Please use the format YYYY.MM.DD.")
+     
     def fetch_data(self):
         email = 'r.khakimov@kaztranscom.kz'
         password = 'Jr78Ndg56Fsd#$'  
-        date = self.date_entry.get()             # Replace with the desired date
+        date =   self.date          #self.date_entry.get()         
 
         try:
             token = self.get_token(email, password)
@@ -280,10 +232,10 @@ class ExcelComparisonApp(customtkinter.CTk):
             df = pd.DataFrame(processed_data)
             output_file = 'second_file.xlsx'
             df.to_excel(output_file, index=False)
-            self.second_file_path.set(output_file)
-            messagebox.showinfo("Успешно", "Файл успешно загружен с сервера.")
+            self.second_file_path = output_file
+            print("Успешно", "Файл успешно загружен с сервера.")
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка при загрузке файла с сервера: {e}")
+            print("Ошибка", f"Ошибка при загрузке файла с сервера: {e}")
     
     def fetch_from_server(self):
         batch_size = 1000
@@ -333,14 +285,14 @@ class ExcelComparisonApp(customtkinter.CTk):
                 skip += batch_size
 
             except Exception as e:
-                messagebox.showerror("Ошибка", f"Ошибка при загрузке файла с сервера: {e}")
+                print("Ошибка", f"Ошибка при загрузке файла с сервера: {e}")
                 return
 
         df = pd.DataFrame(all_data)
         output_file = "first_file.xlsx"
         df.to_excel(output_file, index=False)
-        self.first_file_path.set(output_file)
-        messagebox.showinfo("Успешно", "Файл успешно загружен с сервера.")
+        self.first_file_path = output_file
+        print("Успешно", "Файл успешно загружен с сервера.")
 
      
     def browse_first_file(self):
@@ -350,12 +302,12 @@ class ExcelComparisonApp(customtkinter.CTk):
         self.fetch_data()
 
     def compare_files(self):
-        first_file = self.first_file_path.get()
-        second_file = self.second_file_path.get()
+        first_file = self.first_file_path
+        second_file = self.second_file_path
 
         # Check if both files are selected
         if not first_file or not second_file:
-            messagebox.showerror("Error", "Пожалуйста выберите оба файла.")
+            print("Error", "Пожалуйста выберите оба файла.")
             return
         
         # Read the Excel files and perform the comparison logic here
@@ -383,11 +335,10 @@ class ExcelComparisonApp(customtkinter.CTk):
             result_df.to_excel(output_filename, index=False)
 
             # Show the result to the user
-            messagebox.showinfo("Результат сравнения", f"Сравнение завершено!\nРезультат сохранен в файл {output_filename}")
+            print("Результат сравнения", f"Сравнение завершено!\nРезультат сохранен в файл {output_filename}")
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred: {e}")
+            print("Error", f"An error occurred: {e}")
 
 
 if __name__ == "__main__": 
     app = ExcelComparisonApp()
-    app.mainloop()
